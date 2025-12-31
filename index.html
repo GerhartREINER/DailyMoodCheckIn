@@ -96,25 +96,25 @@
             <div class="stats-sidebar">
               <div class="stat-card">
                 <div class="stat-label">Average Mood</div>
-                <div class="stat-value" id="avgMoodValue">4.2</div>
-                <div class="trend-indicator trend-up">
-                  <i class="fas fa-arrow-up"></i>
-                  <span>Improved by 12%</span>
+                <div class="stat-value" id="avgMoodValue">0.0</div>
+                <div class="trend-indicator trend-neutral">
+                  <i class="fas fa-minus"></i>
+                  <span id="moodTrendText">No data yet</span>
                 </div>
               </div>
               
               <div class="stat-card">
                 <div class="stat-label">Habit Completion</div>
-                <div class="stat-value" id="avgCompletion">78%</div>
-                <div class="trend-indicator trend-up">
-                  <i class="fas fa-arrow-up"></i>
-                  <span>+15% this month</span>
+                <div class="stat-value" id="avgCompletion">0%</div>
+                <div class="trend-indicator trend-neutral">
+                  <i class="fas fa-minus"></i>
+                  <span id="completionTrendText">No data yet</span>
                 </div>
               </div>
               
               <div class="stat-card">
                 <div class="stat-label">Best Streak</div>
-                <div class="stat-value" id="bestStreak">12</div>
+                <div class="stat-value" id="bestStreak">0</div>
                 <div class="trend-indicator trend-neutral">
                   <i class="fas fa-minus"></i>
                   <span>days in a row</span>
@@ -151,29 +151,31 @@
           
           <div class="chart-container">
             <div class="chart-header">
-              <div class="chart-title">Mood Trend (Last 30 Days)</div>
+              <div class="chart-title">Habit Completion (Last 30 Days)</div>
               <div class="chart-legend">
                 <div class="legend-item">
                   <span class="legend-color" style="background: #22c55e"></span>
-                  <span>Great</span>
+                  <span>80-100%</span>
                 </div>
                 <div class="legend-item">
                   <span class="legend-color" style="background: #84cc16"></span>
-                  <span>Good</span>
+                  <span>60-80%</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color" style="background: #eab308"></span>
+                  <span>40-60%</span>
                 </div>
               </div>
             </div>
-            <div id="moodChart"></div>
+            <div id="progressStats" class="habits-container"></div>
           </div>
-          
-          <div id="progressStats" class="habits-container"></div>
           
           <div class="stat-card" style="margin-top: 24px;">
             <div class="stat-label">Overall Improvement</div>
-            <div class="stat-value" id="overallImprovement">42%</div>
+            <div class="stat-value" id="overallImprovement">0%</div>
             <p style="color: var(--text-secondary); margin-top: 12px;">
               <i class="fas fa-star" style="color: var(--warning);"></i>
-              <span>You're making great progress! Keep building those positive habits.</span>
+              <span id="improvementMessage">Start tracking to see your progress!</span>
             </p>
           </div>
         </div>
@@ -196,6 +198,9 @@
         <button id="importData" class="icon-btn" title="Import Data">
           <i class="fas fa-upload"></i>
         </button>
+        <button id="clearData" class="icon-btn" title="Clear Data">
+          <i class="fas fa-trash"></i>
+        </button>
         <button id="settingsBtn" class="icon-btn" title="Settings">
           <i class="fas fa-cog"></i>
         </button>
@@ -203,11 +208,8 @@
     </footer>
   </div>
 
-  <!-- Toast Notification -->
-  <div id="toast" class="toast">
-    <i class="fas fa-check-circle"></i>
-    <span id="toastMessage">Success!</span>
-  </div>
+  <!-- Notification -->
+  <div id="notification" class="notification"></div>
 
   <!-- Day Detail Modal -->
   <div id="dayModal" class="modal-overlay">
@@ -222,7 +224,7 @@
       <h2 style="margin-bottom: 24px; color: var(--primary);">
         <i class="fas fa-cog"></i> Settings
       </h2>
-      <!-- Settings content -->
+      <!-- Settings content will be inserted by JavaScript -->
     </div>
   </div>
 
