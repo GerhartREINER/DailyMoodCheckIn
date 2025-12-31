@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mood & Habit Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Daily Tracker</h1>
+    <nav>
+      <button data-view="today">Today</button>
+      <button data-view="history">History</button>
+      <button data-view="progress">Progress</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TODAY -->
+    <section id="today" class="view active">
+      <h2>Mood</h2>
+      <div id="moods" class="moods"></div>
+
+      <h2>Habits</h2>
+      <div id="habits" class="habits"></div>
+
+      <h2>Notes</h2>
+      <textarea id="notes" placeholder="How was today?"></textarea>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="history" class="view">
+      <h2>Last 30 Days</h2>
+      <div id="calendar" class="calendar"></div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section id="progress" class="view">
+      <h2>Progress</h2>
+      <div id="stats"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
