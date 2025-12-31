@@ -51,7 +51,10 @@ const habits = [
 
 const todayKey = new Date().toISOString().slice(0, 10);
 
-// Initialize with enhanced sample data
+// DOM Elements
+let currentStreak = 0;
+
+// Initialize data storage
 function initializeData() {
   const data = JSON.parse(localStorage.getItem("tracker") || "{}");
   
@@ -65,7 +68,7 @@ function initializeData() {
       const key = date.toISOString().slice(0, 10);
       
       // Simulate improvement over time
-      const progressFactor = 1 - (i / 29); // Increases from 0 to 1
+      const progressFactor = 1 - (i / 29);
       const moodIndex = Math.min(
         Math.floor((progressFactor + Math.random() * 0.3) * 5), 
         4
@@ -87,7 +90,7 @@ function initializeData() {
       });
       
       // Add realistic notes showing improvement
-      if (i <= 7) { // Last 7 days get detailed notes
+      if (i <= 7) {
         data[key].notes = getSampleNote(moodIndex, data[key].completedHabits, i);
       }
     }
@@ -110,7 +113,83 @@ function getSampleNote(moodIndex, completedHabits, daysAgo) {
   return notes[Math.floor(Math.random() * notes.length)];
 }
 
-/* Enhanced Mood Selection */
+// Data management
+function loadData() {
+  return JSON.parse(localStorage.getItem("tracker") || "{}");
+}
+
+function saveData(data) {
+  localStorage.setItem("tracker", JSON.stringify(data));
+  showToast("Progress saved!", "success");
+  updateLastUpdated();
+}
+
+function getToday(data) {
+  if (!data[todayKey]) {
+    data[todayKey] = { 
+      mood: null, 
+      habits: {}, 
+      notes: "",
+      date: todayKey,
+      completedHabits: 0
+    };
+  }
+  return data[todayKey];
+}
+
+// UI Helpers
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+}
+
+function updateLastUpdated() {
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+}
+
+// Toast Notification
+function showToast(message, type = "success") {
+  const toast = document.getElementById('toast');
+  const toastMessage = document.getElementById('toastMessage');
+  
+  toastMessage.textContent = message;
+  toast.className = `toast ${type}`;
+  toast.classList.add('show');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// View Management
+function setupViewNavigation() {
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Update active button
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      
+      // Show selected view
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      document.getElementById(btn.dataset.view).classList.add("active");
+      
+      // Render the selected view
+      if (btn.dataset.view === 'today') renderToday();
+      else if (btn.dataset.view === 'history') renderHistory();
+      else if (btn.dataset.view === 'progress') renderProgress();
+    });
+  });
+}
+
+// TODAY VIEW
 function renderToday() {
   const data = loadData();
   const today = getToday(data);
@@ -118,10 +197,22 @@ function renderToday() {
   // Update current date display
   document.getElementById('currentDate').textContent = formatDate(todayKey);
   
-  // Render Enhanced Mood Selection
+  // Render Enhanced Mood Selection with better feedback
+  renderMoodSelection(data, today);
+  
+  // Render habits with enhanced progress tracking
+  renderHabitsWithProgress(data, today);
+  
+  // Render notes with auto-save
+  setupNotesAutoSave(data, today);
+  
+  // Update streak display
+  updateStreakDisplay(data);
+}
+
+function renderMoodSelection(data, today) {
   const moodBox = document.getElementById("moods");
   moodBox.innerHTML = "";
-  moodBox.className = "mood-grid";
   
   moods.forEach(m => {
     const card = document.createElement("div");
@@ -139,143 +230,415 @@ function renderToday() {
     card.style.color = m.color;
     
     card.onclick = () => {
-      // Add click animation
-      card.classList.add("animating");
-      setTimeout(() => card.classList.remove("animating"), 300);
+      // Add click animation with ripple effect
+      createRippleEffect(card, m.color);
       
       // Remove selection from other cards
       document.querySelectorAll('.mood-card').forEach(c => {
         c.classList.remove('selected');
       });
       
-      // Add selection to clicked card with delay
+      // Add slight delay for better UX
       setTimeout(() => {
         card.classList.add('selected');
         today.mood = m.name;
-        saveData(data);
-        showNotification(`Mood set to ${m.name}!`, 1500);
         
-        // Update streak if applicable
+        // Add pulse animation to selected emoji
+        const emoji = card.querySelector('.mood-emoji');
+        emoji.style.animation = 'bounce 0.6s ease';
+        setTimeout(() => {
+          emoji.style.animation = '';
+        }, 600);
+        
+        saveData(data);
         updateMoodStreak(data, m.name);
+        
+        // Show success message with emoji
+        showToast(`${m.emoji} Mood set to ${m.name}!`, "success");
       }, 150);
     };
     
     moodBox.appendChild(card);
   });
-  
-  // Render habits with progress tracking
-  renderHabitsWithProgress(data, today);
-  
-  // Render notes with auto-save
-  setupNotesAutoSave(data, today);
 }
 
-/* Enhanced Habit Tracking with Progress */
+function createRippleEffect(element, color) {
+  const ripple = document.createElement('span');
+  const rect = element.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  
+  ripple.style.cssText = `
+    position: absolute;
+    border-radius: 50%;
+    background: ${color}20;
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    width: ${size}px;
+    height: ${size}px;
+    top: ${(rect.height - size) / 2}px;
+    left: ${(rect.width - size) / 2}px;
+    pointer-events: none;
+    z-index: 1;
+  `;
+  
+  element.appendChild(ripple);
+  
+  setTimeout(() => {
+    ripple.remove();
+  }, 600);
+}
+
 function renderHabitsWithProgress(data, today) {
   const habitBox = document.getElementById("habits");
   habitBox.innerHTML = "";
   
   // Calculate weekly completion for each habit
   const weeklyStats = calculateWeeklyStats(data);
+  let completedToday = 0;
   
-  habits.forEach((h, index) => {
-    const habitItem = document.createElement("div");
-    habitItem.className = "habit-item";
+  habits.forEach((habit, index) => {
+    const habitCard = document.createElement("div");
+    habitCard.className = "habit-card";
     
-    const weeklyCompletion = weeklyStats[h.name] || 0;
+    const weeklyCompletion = weeklyStats[habit.name] || 0;
     const progressPercent = Math.round(weeklyCompletion * 100);
+    const isChecked = today.habits[habit.name] || false;
     
-    const isChecked = today.habits[h.name] || false;
+    if (isChecked) completedToday++;
     
-    habitItem.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-        <input type="checkbox" id="habit-${h.name}" ${isChecked ? 'checked' : ''}>
-        <label for="habit-${h.name}" style="flex: 1;">
-          <span style="font-size: 1.2rem;">${h.icon}</span>
-          <span style="margin-left: 8px;">${h.name}</span>
-          <span style="color: var(--text-light); font-size: 0.9rem; margin-left: 8px;">
-            ${h.category}
-          </span>
-        </label>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div style="width: 60px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden;">
-            <div style="width: ${progressPercent}%; height: 100%; background: ${isChecked ? '#10b981' : '#6366f1'}; 
-                 border-radius: 3px; transition: width 0.5s ease;"></div>
-          </div>
-          <span style="font-size: 0.8rem; color: var(--text-light); min-width: 40px;">
-            ${progressPercent}%
-          </span>
+    habitCard.innerHTML = `
+      <div class="habit-header">
+        <div class="habit-icon">${habit.icon}</div>
+        <div class="habit-info">
+          <h3>${habit.name}</h3>
+          <span class="category">${habit.category}</span>
         </div>
       </div>
-      ${isChecked ? `
-        <div style="margin-top: 8px; color: #10b981; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
-          <i class="fas fa-check-circle"></i> Completed today!
+      
+      <div class="habit-toggle">
+        <label for="habit-${habit.name}">
+          ${isChecked ? '✅ Completed today' : '◻️ Mark as done'}
+        </label>
+        <div class="checkbox-container">
+          <input type="checkbox" id="habit-${habit.name}" ${isChecked ? 'checked' : ''}>
+          <span class="checkbox-slider"></span>
         </div>
-      ` : ''}
+      </div>
+      
+      <div class="habit-progress">
+        <div class="progress-label">
+          <span>Weekly completion</span>
+          <span>${progressPercent}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${progressPercent}%"></div>
+        </div>
+      </div>
     `;
     
-    const checkbox = habitItem.querySelector('input');
+    const checkbox = habitCard.querySelector('input');
     checkbox.onchange = () => {
-      today.habits[h.name] = checkbox.checked;
-      
-      // Update completed habits count
+      today.habits[habit.name] = checkbox.checked;
       today.completedHabits = Object.values(today.habits).filter(Boolean).length;
+      
+      // Animate progress bar
+      const progressFill = habitCard.querySelector('.progress-fill');
+      const newPercent = checkbox.checked ? 
+        Math.min(progressPercent + 15, 100) : Math.max(progressPercent - 15, 0);
+      
+      progressFill.style.width = `${newPercent}%`;
       
       saveData(data);
       
       if (checkbox.checked) {
-        showNotification(`Great job! ${h.name} completed!`, 1500);
-        updateHabitStreak(data, h.name);
+        showToast(`Great job! ${habit.icon} ${habit.name} completed!`, "success");
+        updateHabitStreak(data, habit.name);
       }
       
-      // Re-render to show updated progress
-      renderToday();
+      // Update today's progress
+      setTimeout(() => renderToday(), 300);
     };
     
-    habitBox.appendChild(habitItem);
+    habitBox.appendChild(habitCard);
   });
   
-  // Add daily summary
-  const completedCount = Object.values(today.habits).filter(Boolean).length;
+  // Update overall progress
   const totalHabits = habits.length;
-  const dailyProgress = document.createElement("div");
-  dailyProgress.className = "stat-card";
-  dailyProgress.innerHTML = `
-    <div class="stat-label">Today's Progress</div>
-    <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 0;">
-      <div class="stat-value">${completedCount}/${totalHabits}</div>
-      <div style="font-size: 2rem;">${getProgressEmoji(completedCount/totalHabits)}</div>
-    </div>
-    <div style="height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden;">
-      <div style="width: ${(completedCount/totalHabits)*100}%; height: 100%; 
-           background: linear-gradient(90deg, #10b981, #34d399); transition: width 0.5s ease;"></div>
-    </div>
-    <div style="margin-top: 10px; color: var(--text-light); font-size: 0.9rem;">
-      ${getProgressMessage(completedCount, totalHabits)}
-    </div>
-  `;
+  const progressPercent = Math.round((completedToday / totalHabits) * 100);
+  document.getElementById('streakCount').textContent = `${currentStreak} day streak • ${completedToday}/${totalHabits} habits`;
+}
+
+function setupNotesAutoSave(data, today) {
+  const notes = document.getElementById('notes');
+  const noteCount = document.getElementById('noteCount');
   
-  habitBox.appendChild(dailyProgress);
+  notes.value = today.notes || "";
+  noteCount.querySelector('span').textContent = `${notes.value.length} characters`;
+  
+  notes.oninput = () => {
+    const count = notes.value.length;
+    noteCount.querySelector('span').textContent = `${count} characters`;
+    
+    // Auto-save after 2 seconds of inactivity
+    clearTimeout(window.notesTimeout);
+    window.notesTimeout = setTimeout(() => {
+      today.notes = notes.value;
+      saveData(data);
+    }, 2000);
+  };
+  
+  document.getElementById('saveNotes').onclick = () => {
+    today.notes = notes.value;
+    saveData(data);
+    showToast("Reflection saved!", "success");
+  };
 }
 
-function getProgressEmoji(ratio) {
-  if (ratio >= 0.8) return "🏆";
-  if (ratio >= 0.6) return "🎯";
-  if (ratio >= 0.4) return "👍";
-  if (ratio > 0) return "👏";
-  return "💪";
+// HISTORY VIEW
+function renderHistory() {
+  const data = loadData();
+  const trends = calculateTrends(data);
+  
+  // Update statistics
+  document.getElementById('avgMoodValue').textContent = trends.averageMoodValue.toFixed(1);
+  document.getElementById('avgCompletion').textContent = `${trends.averageCompletion}%`;
+  document.getElementById('bestStreak').textContent = trends.bestStreak || 0;
+  
+  // Update trend indicators
+  updateTrendIndicators(trends);
+  
+  // Render calendar
+  renderCalendar(data);
+  
+  // Render habit chart
+  renderHabitChart(data);
 }
 
-function getProgressMessage(completed, total) {
-  const ratio = completed / total;
-  if (ratio === 1) return "Perfect! All habits completed!";
-  if (ratio >= 0.8) return "Excellent work! Almost perfect!";
-  if (ratio >= 0.6) return "Good job! Keep it up!";
-  if (ratio >= 0.4) return "Making progress!";
-  if (ratio > 0) return "Every bit counts!";
-  return "Let's start strong!";
+function renderCalendar(data) {
+  const calendar = document.getElementById('calendar');
+  calendar.innerHTML = '';
+  
+  const today = new Date();
+  const firstDay = new Date(today);
+  firstDay.setDate(today.getDate() - 29);
+  
+  // Find the first Sunday
+  const startDate = new Date(firstDay);
+  while (startDate.getDay() !== 0) {
+    startDate.setDate(startDate.getDate() - 1);
+  }
+  
+  // Render 42 days (6 weeks)
+  for (let i = 0; i < 42; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+    const key = currentDate.toISOString().slice(0, 10);
+    const dayData = data[key];
+    
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'calendar-day';
+    
+    // Highlight today
+    if (key === todayKey) {
+      dayDiv.classList.add('today');
+    }
+    
+    // Add mood data if exists
+    if (dayData?.mood) {
+      dayDiv.classList.add('has-data');
+      const mood = moods.find(m => m.name === dayData.mood);
+      dayDiv.innerHTML = `
+        <div class="day-number">${currentDate.getDate()}</div>
+        <div class="day-mood" style="color: ${mood.color}">${mood.emoji}</div>
+      `;
+      
+      // Add tooltip
+      const completed = Object.values(dayData.habits).filter(Boolean).length;
+      dayDiv.title = `${formatDate(key)}\nMood: ${dayData.mood}\nHabits: ${completed}/${habits.length}`;
+      
+      // Make clickable for details
+      dayDiv.onclick = () => showDayDetails(key, dayData);
+    } else {
+      dayDiv.innerHTML = `<div class="day-number">${currentDate.getDate()}</div>`;
+    }
+    
+    // Fade out days outside 30-day range
+    if (currentDate < firstDay || currentDate > today) {
+      dayDiv.style.opacity = '0.3';
+    }
+    
+    calendar.appendChild(dayDiv);
+  }
 }
 
+function renderHabitChart(data) {
+  const habitChart = document.getElementById('habitChart');
+  const last30Days = getLastNDays(30);
+  
+  // Calculate completion rate for each day
+  const completionRates = last30Days.map(date => {
+    const dayData = data[date];
+    if (!dayData) return 0;
+    const completed = Object.values(dayData.habits).filter(Boolean).length;
+    return (completed / habits.length) * 100;
+  });
+  
+  // Create SVG chart
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', '200');
+  svg.setAttribute('viewBox', '0 0 1000 200');
+  
+  // Create line
+  const points = completionRates.map((rate, index) => {
+    const x = (index / (completionRates.length - 1)) * 1000;
+    const y = 200 - (rate / 100) * 180; // Scale to 90% of height
+    return `${x},${y}`;
+  }).join(' ');
+  
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', points);
+  polyline.setAttribute('fill', 'none');
+  polyline.setAttribute('stroke', 'var(--primary)');
+  polyline.setAttribute('stroke-width', '3');
+  polyline.setAttribute('stroke-linecap', 'round');
+  polyline.setAttribute('stroke-linejoin', 'round');
+  
+  // Add gradient area under the line
+  const areaPoints = `${points} 1000,200 0,200`;
+  const area = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  area.setAttribute('points', areaPoints);
+  area.setAttribute('fill', 'url(#gradient)');
+  area.setAttribute('opacity', '0.2');
+  
+  // Add gradient
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  gradient.setAttribute('id', 'gradient');
+  gradient.setAttribute('x1', '0%');
+  gradient.setAttribute('y1', '0%');
+  gradient.setAttribute('x2', '0%');
+  gradient.setAttribute('y2', '100%');
+  
+  const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  stop1.setAttribute('offset', '0%');
+  stop1.setAttribute('stop-color', 'var(--primary)');
+  stop1.setAttribute('stop-opacity', '0.5');
+  
+  const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  stop2.setAttribute('offset', '100%');
+  stop2.setAttribute('stop-color', 'var(--primary)');
+  stop2.setAttribute('stop-opacity', '0');
+  
+  gradient.appendChild(stop1);
+  gradient.appendChild(stop2);
+  defs.appendChild(gradient);
+  
+  svg.appendChild(defs);
+  svg.appendChild(area);
+  svg.appendChild(polyline);
+  
+  // Add dots for data points
+  completionRates.forEach((rate, index) => {
+    const x = (index / (completionRates.length - 1)) * 1000;
+    const y = 200 - (rate / 100) * 180;
+    
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', y);
+    circle.setAttribute('r', '4');
+    circle.setAttribute('fill', 'var(--primary)');
+    circle.setAttribute('stroke', 'white');
+    circle.setAttribute('stroke-width', '2');
+    
+    // Add hover effect
+    circle.onmouseover = () => {
+      const date = last30Days[index];
+      circle.setAttribute('r', '6');
+      
+      // Show tooltip
+      const tooltip = document.createElement('div');
+      tooltip.className = 'chart-tooltip';
+      tooltip.textContent = `${formatDate(date)}: ${rate.toFixed(0)}%`;
+      tooltip.style.position = 'absolute';
+      tooltip.style.left = `${(index / completionRates.length) * 100}%`;
+      tooltip.style.top = `${(y / 200) * 100}%`;
+      tooltip.style.transform = 'translate(-50%, -100%)';
+      svg.appendChild(tooltip);
+    };
+    
+    circle.onmouseout = () => {
+      circle.setAttribute('r', '4');
+      const tooltip = svg.querySelector('.chart-tooltip');
+      if (tooltip) tooltip.remove();
+    };
+    
+    svg.appendChild(circle);
+  });
+  
+  habitChart.innerHTML = '';
+  habitChart.appendChild(svg);
+}
+
+// PROGRESS VIEW
+function renderProgress() {
+  const data = loadData();
+  const last30Days = getLastNDays(30);
+  const progressStats = document.getElementById('progressStats');
+  
+  // Calculate overall improvement
+  const improvement = calculateImprovement(data);
+  document.getElementById('overallImprovement').textContent = `${improvement}%`;
+  
+  progressStats.innerHTML = '';
+  
+  habits.forEach(habit => {
+    const completionData = last30Days.map(date => {
+      return data[date]?.habits?.[habit.name] ? 1 : 0;
+    });
+    
+    const totalCompleted = completionData.reduce((a, b) => a + b, 0);
+    const completionRate = Math.round((totalCompleted / 30) * 100);
+    const currentStreak = calculateCurrentStreak(completionData);
+    
+    const statCard = document.createElement('div');
+    statCard.className = 'habit-card';
+    statCard.innerHTML = `
+      <div class="habit-header">
+        <div class="habit-icon">${habit.icon}</div>
+        <div class="habit-info">
+          <h3>${habit.name}</h3>
+          <span class="category">${habit.category}</span>
+        </div>
+      </div>
+      
+      <div style="margin: 20px 0;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="color: var(--text-secondary); font-size: 0.9rem;">Completion</span>
+          <span style="font-weight: 600; color: var(--primary);">${completionRate}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${completionRate}%"></div>
+        </div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between;">
+        <div style="text-align: center;">
+          <div style="font-size: 1.2rem; font-weight: 700; color: var(--accent);">${totalCompleted}</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary);">Days done</div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 1.2rem; font-weight: 700; color: var(--secondary);">${currentStreak}</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary);">Current streak</div>
+        </div>
+      </div>
+    `;
+    
+    progressStats.appendChild(statCard);
+  });
+}
+
+// Helper Functions
 function calculateWeeklyStats(data) {
   const weeklyStats = {};
   const last7Days = getLastNDays(7);
@@ -293,304 +656,112 @@ function calculateWeeklyStats(data) {
   return weeklyStats;
 }
 
-/* Enhanced History View with Detailed Stats */
-function renderHistory() {
-  const data = loadData();
-  const cal = document.getElementById("calendar");
-  cal.innerHTML = "";
-  
-  // Calculate overall trends
-  const trends = calculateTrends(data);
-  
-  // Add trend overview
-  const trendCard = document.createElement("div");
-  trendCard.className = "stat-card";
-  trendCard.style.marginBottom = "20px";
-  trendCard.innerHTML = `
-    <h3 style="margin-bottom: 10px; color: var(--accent);">
-      <i class="fas fa-chart-line"></i> 30-Day Overview
-    </h3>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 15px 0;">
-      <div style="text-align: center;">
-        <div style="font-size: 1.8rem; font-weight: 700; color: var(--accent);">
-          ${trends.averageMoodValue.toFixed(1)}
-        </div>
-        <div style="font-size: 0.8rem; color: var(--text-light);">Avg Mood</div>
-      </div>
-      <div style="text-align: center;">
-        <div style="font-size: 1.8rem; font-weight: 700; color: var(--accent);">
-          ${trends.averageCompletion}%
-        </div>
-        <div style="font-size: 0.8rem; color: var(--text-light);">Habit Completion</div>
-      </div>
-      <div style="text-align: center;">
-        <div style="font-size: 1.8rem; font-weight: 700; color: ${trends.improvement > 0 ? '#10b981' : '#ef4444'}">
-          ${trends.improvement > 0 ? '+' : ''}${trends.improvement}%
-        </div>
-        <div style="font-size: 0.8rem; color: var(--text-light);">Improvement</div>
-      </div>
-    </div>
-    <div style="color: var(--text-light); font-size: 0.9rem; margin-top: 10px;">
-      <i class="fas fa-${trends.improvement > 0 ? 'arrow-up' : 'arrow-down'}"></i>
-      ${getTrendMessage(trends)}
-    </div>
-  `;
-  
-  cal.appendChild(trendCard);
-  
-  // Add habit improvement chart
-  const habitChart = document.createElement("div");
-  habitChart.className = "habit-chart";
-  habitChart.innerHTML = `
-    <h4 style="margin-bottom: 15px; color: var(--accent);">
-      <i class="fas fa-tasks"></i> Habit Improvement
-    </h4>
-    <div id="habit-improvement-chart"></div>
-  `;
-  
-  cal.appendChild(habitChart);
-  renderHabitImprovementChart(data);
-  
-  // Add detailed day-by-day view
-  const daysHeader = document.createElement("div");
-  daysHeader.innerHTML = `<h3 style="margin: 20px 0 10px 0; color: var(--accent);">
-    <i class="fas fa-calendar-alt"></i> Daily Breakdown
-  </h3>`;
-  cal.appendChild(daysHeader);
-  
-  // Create a grid for the last 30 days
-  const daysGrid = document.createElement("div");
-  daysGrid.className = "history-days-grid";
-  daysGrid.style.display = "grid";
-  daysGrid.style.gridTemplateColumns = "repeat(auto-fill, minmax(300px, 1fr))";
-  daysGrid.style.gap = "15px";
-  daysGrid.style.marginTop = "15px";
-  
-  const last30Days = getLastNDays(30).reverse();
-  
-  last30Days.forEach(date => {
-    const dayData = data[date];
-    const dayElement = createHistoryDayElement(date, dayData, data);
-    daysGrid.appendChild(dayElement);
-  });
-  
-  cal.appendChild(daysGrid);
-}
-
-function createHistoryDayElement(date, dayData, allData) {
-  const day = new Date(date);
-  const dayElement = document.createElement("div");
-  dayElement.className = "history-day";
-  
-  if (!dayData) {
-    dayElement.innerHTML = `
-      <div class="day-header">
-        <div class="day-date">${day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
-        <div>📭</div>
-      </div>
-      <div style="color: var(--text-light); font-size: 0.9rem; text-align: center; padding: 20px;">
-        No data recorded
-      </div>
-    `;
-    return dayElement;
-  }
-  
-  const mood = moods.find(m => m.name === dayData.mood);
-  const completedHabits = Object.values(dayData.habits).filter(Boolean).length;
-  const completionPercent = Math.round((completedHabits / habits.length) * 100);
-  
-  // Calculate streak for this day
-  const moodStreak = calculateMoodStreak(allData, date);
-  const habitStreak = calculateHabitStreak(allData, date);
-  
-  // Compare with previous day
-  const prevDate = getPreviousDay(date);
-  const prevDayData = allData[prevDate];
-  let trendIndicator = "";
-  if (prevDayData) {
-    const prevCompleted = Object.values(prevDayData.habits).filter(Boolean).length;
-    const improvement = completedHabits - prevCompleted;
-    if (improvement > 0) trendIndicator = `<span class="trend-up">↑ ${improvement}</span>`;
-    else if (improvement < 0) trendIndicator = `<span class="trend-down">↓ ${Math.abs(improvement)}</span>`;
-    else trendIndicator = `<span class="trend-neutral">→</span>`;
-  }
-  
-  dayElement.innerHTML = `
-    <div class="day-header">
-      <div class="day-date">
-        ${day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-      </div>
-      <div class="day-mood" style="color: ${mood?.color || '#ccc'}">
-        ${mood?.emoji || '❓'}
-      </div>
-    </div>
-    
-    <div class="habit-progress">
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="font-weight: 600;">Habits: ${completedHabits}/${habits.length}</span>
-        <span style="color: var(--accent); font-weight: 600;">${completionPercent}%</span>
-      </div>
-      <div class="habit-bar">
-        <div class="habit-fill" style="width: ${completionPercent}%"></div>
-      </div>
-      ${trendIndicator ? `<div style="font-size: 0.8rem; margin-top: 5px;">${trendIndicator} from previous day</div>` : ''}
-    </div>
-    
-    ${dayData.completedHabits > 0 ? `
-      <div class="habit-list">
-        ${habits.slice(0, 4).map(h => `
-          <span class="habit-badge ${dayData.habits[h.name] ? 'completed' : 'missed'}">
-            ${h.icon} ${dayData.habits[h.name] ? '✓' : '✗'}
-          </span>
-        `).join('')}
-        ${habits.length > 4 ? `<span class="habit-badge">+${habits.length - 4} more</span>` : ''}
-      </div>
-    ` : ''}
-    
-    ${moodStreak > 1 ? `
-      <div style="margin-top: 8px;">
-        <span class="streak-counter">
-          <i class="fas fa-fire"></i> ${moodStreak} day mood streak
-        </span>
-      </div>
-    ` : ''}
-    
-    ${habitStreak > 1 ? `
-      <div style="margin-top: 5px;">
-        <span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem;">
-          <i class="fas fa-bolt"></i> ${habitStreak} day habit streak
-        </span>
-      </div>
-    ` : ''}
-    
-    ${dayData.notes ? `
-      <div class="day-notes" title="${dayData.notes}">
-        <i class="fas fa-sticky-note"></i> ${dayData.notes.substring(0, 60)}${dayData.notes.length > 60 ? '...' : ''}
-      </div>
-    ` : ''}
-  `;
-  
-  // Add click to view details
-  dayElement.onclick = () => showDayDetails(date, dayData);
-  
-  return dayElement;
-}
-
-function renderHabitImprovementChart(data) {
-  const last30Days = getLastNDays(30);
-  const container = document.getElementById('habit-improvement-chart');
-  
-  // Calculate improvement for each habit
-  const improvementData = habits.map(habit => {
-    const firstHalf = last30Days.slice(0, 15);
-    const secondHalf = last30Days.slice(15);
-    
-    const firstHalfCompletion = firstHalf.filter(date => 
-      data[date]?.habits?.[habit.name]
-    ).length / 15;
-    
-    const secondHalfCompletion = secondHalf.filter(date => 
-      data[date]?.habits?.[habit.name]
-    ).length / 15;
-    
-    const improvement = secondHalfCompletion - firstHalfCompletion;
-    
-    return {
-      habit: habit.name,
-      icon: habit.icon,
-      firstHalf: Math.round(firstHalfCompletion * 100),
-      secondHalf: Math.round(secondHalfCompletion * 100),
-      improvement: Math.round(improvement * 100),
-      category: habit.category
-    };
-  });
-  
-  // Sort by improvement
-  improvementData.sort((a, b) => b.improvement - a.improvement);
-  
-  container.innerHTML = improvementData.map(item => `
-    <div class="chart-bar">
-      <div class="chart-label">
-        <span style="font-size: 1.2rem;">${item.icon}</span>
-        <span style="margin-left: 8px;">${item.habit}</span>
-      </div>
-      <div class="chart-track">
-        <div class="chart-progress" style="width: ${Math.max(item.secondHalf, 10)}%;">
-          ${item.secondHalf}%
-        </div>
-      </div>
-      <div style="width: 60px; text-align: right; font-weight: 600; 
-           color: ${item.improvement > 0 ? '#10b981' : item.improvement < 0 ? '#ef4444' : '#6b7280'}">
-        ${item.improvement > 0 ? '+' : ''}${item.improvement}%
-      </div>
-    </div>
-  `).join('');
-}
-
-/* Helper Functions */
 function calculateTrends(data) {
   const last30Days = getLastNDays(30);
   const validDays = last30Days.filter(date => data[date]);
   
-  if (validDays.length === 0) return { averageMoodValue: 0, averageCompletion: 0, improvement: 0 };
+  if (validDays.length === 0) {
+    return {
+      averageMoodValue: 0,
+      averageCompletion: 0,
+      bestStreak: 0,
+      improvement: 0
+    };
+  }
   
-  // Calculate average mood value
-  const totalMoodValue = validDays.reduce((sum, date) => {
+  // Calculate average mood
+  const moodValues = validDays.map(date => {
     const mood = moods.find(m => m.name === data[date].mood);
-    return sum + (mood?.value || 3);
-  }, 0);
-  const averageMoodValue = totalMoodValue / validDays.length;
+    return mood?.value || 3;
+  });
+  const averageMoodValue = moodValues.reduce((a, b) => a + b, 0) / moodValues.length;
   
-  // Calculate habit completion
-  const totalCompletion = validDays.reduce((sum, date) => {
+  // Calculate average completion
+  const completionRates = validDays.map(date => {
     const completed = Object.values(data[date].habits).filter(Boolean).length;
-    return sum + (completed / habits.length);
-  }, 0);
-  const averageCompletion = Math.round((totalCompletion / validDays.length) * 100);
+    return (completed / habits.length) * 100;
+  });
+  const averageCompletion = Math.round(completionRates.reduce((a, b) => a + b, 0) / completionRates.length);
   
-  // Calculate improvement (compare first half vs second half of period)
+  // Calculate best streak
+  let bestStreak = 0;
+  let currentStreak = 0;
+  validDays.forEach(date => {
+    if (data[date].completedHabits >= habits.length / 2) {
+      currentStreak++;
+      bestStreak = Math.max(bestStreak, currentStreak);
+    } else {
+      currentStreak = 0;
+    }
+  });
+  
+  // Calculate improvement
   const firstHalf = validDays.slice(0, Math.floor(validDays.length / 2));
   const secondHalf = validDays.slice(Math.floor(validDays.length / 2));
   
-  const firstHalfAvg = firstHalf.length > 0 ? 
-    firstHalf.reduce((sum, date) => sum + (moods.find(m => m.name === data[date].mood)?.value || 3), 0) / firstHalf.length : 0;
-  const secondHalfAvg = secondHalf.length > 0 ? 
-    secondHalf.reduce((sum, date) => sum + (moods.find(m => m.name === data[date].mood)?.value || 3), 0) / secondHalf.length : 0;
+  const firstHalfAvg = firstHalf.reduce((sum, date) => {
+    const completed = Object.values(data[date].habits).filter(Boolean).length;
+    return sum + (completed / habits.length);
+  }, 0) / firstHalf.length || 0;
+  
+  const secondHalfAvg = secondHalf.reduce((sum, date) => {
+    const completed = Object.values(data[date].habits).filter(Boolean).length;
+    return sum + (completed / habits.length);
+  }, 0) / secondHalf.length || 0;
   
   const improvement = Math.round(((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100) || 0;
   
-  return { averageMoodValue, averageCompletion, improvement };
+  return {
+    averageMoodValue,
+    averageCompletion,
+    bestStreak,
+    improvement
+  };
 }
 
-function getTrendMessage(trends) {
-  if (trends.improvement > 20) return "Excellent progress! You're improving rapidly!";
-  if (trends.improvement > 10) return "Great improvement! Keep up the good work!";
-  if (trends.improvement > 0) return "Steady improvement. You're on the right track!";
-  if (trends.improvement === 0) return "Maintaining consistency. That's important too!";
-  return "Don't worry about setbacks. Every day is a new opportunity!";
-}
-
-function calculateMoodStreak(data, date) {
-  let streak = 0;
-  let currentDate = date;
+function updateTrendIndicators(trends) {
+  const moodTrend = document.querySelector('#history .trend-indicator');
+  const completionTrend = document.querySelectorAll('#history .trend-indicator')[1];
   
-  while (data[currentDate]?.mood) {
-    streak++;
-    currentDate = getPreviousDay(currentDate);
+  if (trends.improvement > 0) {
+    moodTrend.innerHTML = '<i class="fas fa-arrow-up"></i><span>Improved by ' + Math.abs(trends.improvement) + '%</span>';
+    moodTrend.className = 'trend-indicator trend-up';
+  } else if (trends.improvement < 0) {
+    moodTrend.innerHTML = '<i class="fas fa-arrow-down"></i><span>Decreased by ' + Math.abs(trends.improvement) + '%</span>';
+    moodTrend.className = 'trend-indicator trend-down';
+  } else {
+    moodTrend.innerHTML = '<i class="fas fa-minus"></i><span>No change</span>';
+    moodTrend.className = 'trend-indicator trend-neutral';
   }
-  
-  return streak;
 }
 
-function calculateHabitStreak(data, date) {
+function calculateImprovement(data) {
+  const last30Days = getLastNDays(30);
+  const firstWeek = last30Days.slice(0, 7);
+  const lastWeek = last30Days.slice(-7);
+  
+  const firstWeekAvg = firstWeek.reduce((sum, date) => {
+    const completed = data[date] ? Object.values(data[date].habits).filter(Boolean).length : 0;
+    return sum + (completed / habits.length);
+  }, 0) / 7;
+  
+  const lastWeekAvg = lastWeek.reduce((sum, date) => {
+    const completed = data[date] ? Object.values(data[date].habits).filter(Boolean).length : 0;
+    return sum + (completed / habits.length);
+  }, 0) / 7;
+  
+  return Math.round(((lastWeekAvg - firstWeekAvg) / firstWeekAvg) * 100) || 0;
+}
+
+function calculateCurrentStreak(completionData) {
   let streak = 0;
-  let currentDate = date;
-  
-  while (data[currentDate] && Object.values(data[currentDate].habits).some(v => v)) {
-    streak++;
-    currentDate = getPreviousDay(currentDate);
+  for (let i = completionData.length - 1; i >= 0; i--) {
+    if (completionData[i] === 1) {
+      streak++;
+    } else {
+      break;
+    }
   }
-  
   return streak;
 }
 
@@ -607,121 +778,318 @@ function getLastNDays(n) {
   return days;
 }
 
-function getPreviousDay(dateStr) {
-  const date = new Date(dateStr);
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
-
-function showDayDetails(date, dayData) {
-  // Create modal for detailed view
-  const modal = document.createElement('div');
-  modal.className = 'day-detail-modal';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <button class="close-modal">&times;</button>
-      <h2 style="color: var(--accent); margin-bottom: 20px;">
-        <i class="fas fa-calendar-day"></i> ${formatDate(date)}
-      </h2>
-      
-      ${dayData.mood ? `
-        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding: 15px; 
-             background: ${moods.find(m => m.name === dayData.mood)?.color || '#f3f4f6'}10; border-radius: 12px;">
-          <div style="font-size: 3rem;">${moods.find(m => m.name === dayData.mood)?.emoji}</div>
-          <div>
-            <div style="font-size: 1.5rem; font-weight: 600;">${dayData.mood}</div>
-            <div style="color: var(--text-light);">${moods.find(m => m.name === dayData.mood)?.desc}</div>
-          </div>
-        </div>
-      ` : ''}
-      
-      <h3 style="margin-bottom: 15px;"><i class="fas fa-tasks"></i> Habits Completed</h3>
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 25px;">
-        ${habits.map(habit => `
-          <div style="display: flex; align-items: center; gap: 10px; padding: 10px; 
-               background: ${dayData.habits[habit.name] ? '#d1fae5' : '#f3f4f6'}; border-radius: 8px;">
-            <div style="font-size: 1.5rem;">${habit.icon}</div>
-            <div style="flex: 1;">
-              <div style="font-weight: 600;">${habit.name}</div>
-              <div style="font-size: 0.8rem; color: var(--text-light);">${habit.category}</div>
-            </div>
-            <div style="font-size: 1.2rem;">
-              ${dayData.habits[habit.name] ? '✅' : '❌'}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      
-      ${dayData.notes ? `
-        <h3 style="margin-bottom: 10px;"><i class="fas fa-sticky-note"></i> Notes</h3>
-        <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px; white-space: pre-wrap;">
-          ${dayData.notes}
-        </div>
-      ` : ''}
-      
-      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-        <button id="editDay" class="save-btn">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button id="closeDayModal" class="save-btn" style="background: var(--text-light);">
-          <i class="fas fa-times"></i> Close
-        </button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  setTimeout(() => modal.classList.add('active'), 10);
-  
-  modal.querySelector('.close-modal').onclick = 
-  modal.querySelector('#closeDayModal').onclick = () => {
-    modal.classList.remove('active');
-    setTimeout(() => modal.remove(), 300);
-  };
-}
-
-/* Add these new functions to script.js */
-function updateMoodStreak(data, mood) {
+function updateStreakDisplay(data) {
   const today = getToday(data);
-  const yesterdayKey = getPreviousDay(todayKey);
-  const yesterday = data[yesterdayKey];
+  const last30Days = getLastNDays(30);
+  let streak = 0;
+  
+  // Calculate current streak of completing at least half the habits
+  for (let i = 0; i < 30; i++) {
+    const date = last30Days[29 - i];
+    const dayData = data[date];
+    
+    if (dayData && dayData.completedHabits >= habits.length / 2) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  
+  currentStreak = streak;
+  const streakDisplay = document.getElementById('currentStreak');
+  streakDisplay.innerHTML = `
+    <i class="fas fa-fire" style="color: ${streak > 0 ? '#f59e0b' : '#94a3b8'}"></i>
+    <span>${streak} day streak</span>
+  `;
+}
+
+function updateMoodStreak(data, mood) {
+  const yesterdayKey = new Date();
+  yesterdayKey.setDate(yesterdayKey.getDate() - 1);
+  const yesterday = data[yesterdayKey.toISOString().slice(0, 10)];
   
   if (yesterday && yesterday.mood === mood) {
-    today.moodStreak = (yesterday.moodStreak || 1) + 1;
-    if (today.moodStreak > 1) {
-      showNotification(`That's ${today.moodStreak} days in a row feeling ${mood}!`, 2000);
-    }
+    // Streak continues
+    showToast(`Continuing your ${mood} streak!`, "success");
   } else {
-    today.moodStreak = 1;
+    // New streak started
+    showToast(`Started a new ${mood} streak!`, "success");
   }
 }
 
 function updateHabitStreak(data, habitName) {
   const today = getToday(data);
-  const yesterdayKey = getPreviousDay(todayKey);
-  const yesterday = data[yesterdayKey];
+  const yesterdayKey = new Date();
+  yesterdayKey.setDate(yesterdayKey.getDate() - 1);
+  const yesterday = data[yesterdayKey.toISOString().slice(0, 10)];
   
   if (yesterday && yesterday.habits[habitName]) {
-    today.habitStreaks = today.habitStreaks || {};
-    today.habitStreaks[habitName] = (yesterday.habitStreaks?.[habitName] || 1) + 1;
-    
-    const streak = today.habitStreaks[habitName];
-    if (streak > 2) {
-      showNotification(`${streak}-day streak for ${habitName}!`, 2000);
-    }
+    // Streak continues
+    showToast(`Nice! ${habitName} streak continues!`, "success");
   } else {
-    today.habitStreaks = today.habitStreaks || {};
-    today.habitStreaks[habitName] = 1;
+    // New streak started
+    showToast(`Started your ${habitName} streak!`, "success");
   }
 }
 
-/* Update the initializeApp function to include streak tracking */
-function initializeApp() {
-  initializeData();
-  renderToday();
+function showDayDetails(date, dayData) {
+  const modal = document.getElementById('dayModal');
+  const modalContent = document.querySelector('#dayModal .modal-content');
+  const mood = moods.find(m => m.name === dayData.mood);
   
-  // Auto-save notes every 5 seconds
+  modalContent.innerHTML = `
+    <h2 style="margin-bottom: 24px; color: var(--primary);">
+      <i class="fas fa-calendar-day"></i> ${formatDate(date)}
+    </h2>
+    
+    ${mood ? `
+      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding: 16px; 
+           background: ${mood.color}10; border-radius: var(--radius-lg);">
+        <div style="font-size: 3rem;">${mood.emoji}</div>
+        <div>
+          <div style="font-size: 1.5rem; font-weight: 700; color: ${mood.color}">${mood.name}</div>
+          <div style="color: var(--text-secondary);">${mood.desc}</div>
+        </div>
+      </div>
+    ` : ''}
+    
+    <div style="margin-bottom: 24px;">
+      <h3 style="margin-bottom: 16px; color: var(--text-primary);">
+        <i class="fas fa-tasks"></i> Habits Completed
+        <span style="color: var(--text-secondary); font-size: 1rem; margin-left: 8px;">
+          (${dayData.completedHabits}/${habits.length})
+        </span>
+      </h3>
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        ${habits.map(habit => {
+          const completed = dayData.habits[habit.name];
+          return `
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; 
+                 background: ${completed ? '#d1fae5' : '#f1f5f9'}; 
+                 border-radius: var(--radius-md); border-left: 4px solid ${completed ? '#10b981' : '#94a3b8'};">
+              <div style="font-size: 1.5rem;">${habit.icon}</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--text-primary);">${habit.name}</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">${habit.category}</div>
+              </div>
+              <div style="font-size: 1.2rem; color: ${completed ? '#10b981' : '#94a3b8'};">
+                ${completed ? '✅' : '❌'}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+    
+    ${dayData.notes ? `
+      <div style="margin-bottom: 24px;">
+        <h3 style="margin-bottom: 12px; color: var(--text-primary);">
+          <i class="fas fa-sticky-note"></i> Reflection
+        </h3>
+        <div style="background: var(--bg-surface); padding: 20px; border-radius: var(--radius-lg); 
+             border-left: 4px solid var(--primary); white-space: pre-wrap; line-height: 1.6;">
+          ${dayData.notes}
+        </div>
+      </div>
+    ` : ''}
+    
+    <button id="closeModal" class="save-btn" style="width: 100%; justify-content: center;">
+      <i class="fas fa-times"></i> Close
+    </button>
+  `;
+  
+  modal.classList.add('active');
+  
+  document.getElementById('closeModal').onclick = () => {
+    modal.classList.remove('active');
+  };
+  
+  // Close modal when clicking outside
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  };
+}
+
+// Settings and Data Management
+function setupDataManagement() {
+  // Export Data
+  document.getElementById('exportData').onclick = () => {
+    const data = loadData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mindful-tracker-backup-${todayKey}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast('Data exported successfully!', 'success');
+  };
+  
+  // Import Data
+  document.getElementById('importData').onclick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        try {
+          const importedData = JSON.parse(event.target.result);
+          saveData(importedData);
+          showToast('Data imported successfully!', 'success');
+          renderToday();
+        } catch (error) {
+          showToast('Error importing data. Invalid format.', 'error');
+        }
+      };
+      
+      reader.readAsText(file);
+    };
+    
+    input.click();
+  };
+  
+  // Settings
+  document.getElementById('settingsBtn').onclick = () => {
+    const modal = document.getElementById('settingsModal');
+    const modalContent = document.querySelector('#settingsModal .modal-content');
+    
+    modalContent.innerHTML = `
+      <h2 style="margin-bottom: 24px; color: var(--primary);">
+        <i class="fas fa-cog"></i> Settings
+      </h2>
+      
+      <div style="margin-bottom: 24px;">
+        <h3 style="margin-bottom: 16px; color: var(--text-primary);">Data Management</h3>
+        <button id="clearData" class="save-btn" style="background: var(--danger); width: 100%; justify-content: center;">
+          <i class="fas fa-trash"></i> Clear All Data
+        </button>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 12px;">
+          This will permanently delete all your tracking data.
+        </p>
+      </div>
+      
+      <div style="margin-bottom: 24px;">
+        <h3 style="margin-bottom: 16px; color: var(--text-primary);">Appearance</h3>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: var(--text-secondary);">Theme:</span>
+          <select id="themeSelect" class="save-btn" style="background: var(--bg-surface); color: var(--text-primary);">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </div>
+      
+      <button id="closeSettings" class="save-btn" style="width: 100%; justify-content: center;">
+        <i class="fas fa-check"></i> Done
+      </button>
+    `;
+    
+    modal.classList.add('active');
+    
+    // Clear data confirmation
+    document.getElementById('clearData').onclick = () => {
+      if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+        localStorage.removeItem('tracker');
+        showToast('All data cleared.', 'warning');
+        setTimeout(() => location.reload(), 1000);
+      }
+    };
+    
+    // Theme selection
+    const themeSelect = document.getElementById('themeSelect');
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    themeSelect.value = currentTheme;
+    
+    themeSelect.onchange = () => {
+      localStorage.setItem('theme', themeSelect.value);
+      document.body.classList.toggle('dark-theme', themeSelect.value === 'dark');
+      showToast('Theme updated!', 'success');
+    };
+    
+    document.getElementById('closeSettings').onclick = () => {
+      modal.classList.remove('active');
+    };
+    
+    // Close modal when clicking outside
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('active');
+      }
+    };
+  };
+}
+
+// Initialize App
+function initializeApp() {
+  // Initialize data
+  initializeData();
+  
+  // Set up navigation
+  setupViewNavigation();
+  
+  // Set up data management
+  setupDataManagement();
+  
+  // Set up theme
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-theme');
+  }
+  
+  // Add ripple animation to CSS
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .dark-theme {
+      --bg-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      --bg-card: #1e293b;
+      --bg-surface: #334155;
+      --bg-hover: #475569;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-tertiary: #94a3b8;
+      --border: #475569;
+    }
+    
+    .chart-tooltip {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      box-shadow: var(--shadow-lg);
+      white-space: nowrap;
+      z-index: 100;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Render initial view
+  renderToday();
+  updateLastUpdated();
+  
+  // Auto-save notes
   setInterval(() => {
     const data = loadData();
     const today = getToday(data);
@@ -729,7 +1097,9 @@ function initializeApp() {
     if (notes && notes.value !== today.notes) {
       today.notes = notes.value;
       saveData(data);
-      document.getElementById('noteCount').textContent = `${notes.value.length} characters`;
     }
-  }, 5000);
+  }, 10000);
 }
+
+// Start the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
