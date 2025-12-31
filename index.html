@@ -6,114 +6,226 @@
   <title>Mood & Habit Tracker</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <header>
       <div class="header-content">
-        <h1><i class="fas fa-heartbeat"></i> Daily Tracker</h1>
-        <p class="date-display" id="currentDate"></p>
+        <h1><i class="fas fa-heartbeat"></i> Mindful Tracker</h1>
+        <div class="date-display">
+          <i class="fas fa-calendar-day"></i>
+          <span id="currentDate"></span>
+        </div>
       </div>
+      
       <nav>
         <button data-view="today" class="nav-btn active">
-          <i class="fas fa-calendar-day"></i> Today
+          <i class="fas fa-sun"></i>
+          <span>Today</span>
         </button>
         <button data-view="history" class="nav-btn">
-          <i class="fas fa-history"></i> History
+          <i class="fas fa-history"></i>
+          <span>History</span>
         </button>
         <button data-view="progress" class="nav-btn">
-          <i class="fas fa-chart-line"></i> Progress
+          <i class="fas fa-chart-line"></i>
+          <span>Progress</span>
         </button>
       </nav>
     </header>
 
     <main>
-      <!-- TODAY -->
+      <!-- TODAY VIEW -->
       <section id="today" class="view active">
+        <!-- Mood Section -->
         <div class="card">
           <div class="card-header">
-            <h2><i class="fas fa-smile"></i> Mood Check</h2>
-            <p>How are you feeling today?</p>
+            <h2><i class="fas fa-smile-beam"></i> How are you feeling today?</h2>
+            <p>Select your current mood to track your emotional wellbeing</p>
           </div>
-          <div id="moods" class="moods"></div>
+          <div id="moods" class="mood-grid"></div>
         </div>
 
+        <!-- Habits Section -->
         <div class="card">
           <div class="card-header">
-            <h2><i class="fas fa-tasks"></i> Daily Habits</h2>
-            <p>Track your daily activities</p>
+            <h2><i class="fas fa-check-circle"></i> Daily Habits</h2>
+            <p>Track your habits and build consistency</p>
           </div>
-          <div id="habits" class="habits"></div>
+          <div id="habits" class="habits-container"></div>
+          
+          <div class="streak-display" id="currentStreak">
+            <i class="fas fa-fire"></i>
+            <span id="streakCount">0 day streak</span>
+          </div>
         </div>
 
+        <!-- Notes Section -->
         <div class="card">
           <div class="card-header">
-            <h2><i class="fas fa-sticky-note"></i> Daily Notes</h2>
-            <p>Reflect on your day</p>
+            <h2><i class="fas fa-edit"></i> Daily Reflection</h2>
+            <p>Take a moment to reflect on your day</p>
           </div>
-          <textarea id="notes" placeholder="How was today? What went well? What could be better?"></textarea>
-          <div class="notes-footer">
-            <span id="noteCount">0 characters</span>
-            <button id="saveNotes" class="save-btn">
-              <i class="fas fa-save"></i> Save Notes
-            </button>
+          <div class="notes-container">
+            <textarea id="notes" placeholder="What made today special? Any challenges you overcame? Things you're grateful for..."></textarea>
+            <div class="notes-footer">
+              <div id="noteCount">
+                <i class="fas fa-keyboard"></i>
+                <span>0 characters</span>
+              </div>
+              <button id="saveNotes" class="save-btn">
+                <i class="fas fa-save"></i> Save Reflection
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- HISTORY -->
+      <!-- HISTORY VIEW -->
       <section id="history" class="view">
         <div class="card">
           <div class="card-header">
-            <h2><i class="fas fa-calendar-alt"></i> Last 30 Days</h2>
-            <p>Your mood and habit history</p>
+            <h2><i class="fas fa-chart-bar"></i> Monthly Overview</h2>
+            <p>Track your progress and improvement over time</p>
           </div>
-          <div class="calendar-header">
-            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-          </div>
-          <div id="calendar" class="calendar"></div>
-          <div class="legend">
-            <div class="legend-item"><span class="legend-color" style="background: #22c55e"></span> Great</div>
-            <div class="legend-item"><span class="legend-color" style="background: #84cc16"></span> Good</div>
-            <div class="legend-item"><span class="legend-color" style="background: #eab308"></span> Okay</div>
-            <div class="legend-item"><span class="legend-color" style="background: #f97316"></span> Low</div>
-            <div class="legend-item"><span class="legend-color" style="background: #ef4444"></span> Rough</div>
+          
+          <!-- Statistics Summary -->
+          <div class="history-grid">
+            <div class="stats-sidebar">
+              <div class="stat-card">
+                <div class="stat-label">Average Mood</div>
+                <div class="stat-value" id="avgMoodValue">4.2</div>
+                <div class="trend-indicator trend-up">
+                  <i class="fas fa-arrow-up"></i>
+                  <span>Improved by 12%</span>
+                </div>
+              </div>
+              
+              <div class="stat-card">
+                <div class="stat-label">Habit Completion</div>
+                <div class="stat-value" id="avgCompletion">78%</div>
+                <div class="trend-indicator trend-up">
+                  <i class="fas fa-arrow-up"></i>
+                  <span>+15% this month</span>
+                </div>
+              </div>
+              
+              <div class="stat-card">
+                <div class="stat-label">Best Streak</div>
+                <div class="stat-value" id="bestStreak">12</div>
+                <div class="trend-indicator trend-neutral">
+                  <i class="fas fa-minus"></i>
+                  <span>days in a row</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Calendar View -->
+            <div>
+              <div class="calendar-header">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+              </div>
+              <div id="calendar" class="calendar-grid"></div>
+              
+              <div class="chart-container">
+                <div class="chart-header">
+                  <div class="chart-title">Habit Improvement Over Time</div>
+                  <div class="chart-legend" id="habitLegend"></div>
+                </div>
+                <div id="habitChart"></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- PROGRESS -->
+      <!-- PROGRESS VIEW -->
       <section id="progress" class="view">
         <div class="card">
           <div class="card-header">
-            <h2><i class="fas fa-chart-pie"></i> Habit Progress</h2>
-            <p>Your consistency over the past 30 days</p>
+            <h2><i class="fas fa-trophy"></i> Your Progress</h2>
+            <p>See how your habits and mood have improved over time</p>
           </div>
-          <div id="stats" class="stats"></div>
-          <div class="summary">
-            <p>Total tracked days: <span id="totalDays">0</span></p>
-            <p>Average mood: <span id="avgMood">-</span></p>
+          
+          <div class="chart-container">
+            <div class="chart-header">
+              <div class="chart-title">Mood Trend (Last 30 Days)</div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <span class="legend-color" style="background: #22c55e"></span>
+                  <span>Great</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color" style="background: #84cc16"></span>
+                  <span>Good</span>
+                </div>
+              </div>
+            </div>
+            <div id="moodChart"></div>
+          </div>
+          
+          <div id="progressStats" class="habits-container"></div>
+          
+          <div class="stat-card" style="margin-top: 24px;">
+            <div class="stat-label">Overall Improvement</div>
+            <div class="stat-value" id="overallImprovement">42%</div>
+            <p style="color: var(--text-secondary); margin-top: 12px;">
+              <i class="fas fa-star" style="color: var(--warning);"></i>
+              <span>You're making great progress! Keep building those positive habits.</span>
+            </p>
           </div>
         </div>
       </section>
     </main>
 
+    <!-- Footer -->
     <footer>
-      <p>Your data is stored locally in your browser</p>
-      <button id="exportData" class="icon-btn" title="Export Data">
-        <i class="fas fa-download"></i>
-      </button>
-      <button id="importData" class="icon-btn" title="Import Data">
-        <i class="fas fa-upload"></i>
-      </button>
-      <button id="clearData" class="icon-btn" title="Clear All Data">
-        <i class="fas fa-trash"></i>
-      </button>
+      <div class="footer-info">
+        <p><i class="fas fa-shield-alt"></i> Your data is stored locally and secure</p>
+        <p style="font-size: 0.8rem; margin-top: 4px; color: var(--text-tertiary);">
+          Last updated: <span id="lastUpdated">Just now</span>
+        </p>
+      </div>
+      
+      <div class="footer-actions">
+        <button id="exportData" class="icon-btn" title="Export Data">
+          <i class="fas fa-download"></i>
+        </button>
+        <button id="importData" class="icon-btn" title="Import Data">
+          <i class="fas fa-upload"></i>
+        </button>
+        <button id="settingsBtn" class="icon-btn" title="Settings">
+          <i class="fas fa-cog"></i>
+        </button>
+      </div>
     </footer>
   </div>
 
-  <div id="notification" class="notification"></div>
-  
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMessage">Success!</span>
+  </div>
+
+  <!-- Day Detail Modal -->
+  <div id="dayModal" class="modal-overlay">
+    <div class="modal-content">
+      <!-- Content will be inserted by JavaScript -->
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2 style="margin-bottom: 24px; color: var(--primary);">
+        <i class="fas fa-cog"></i> Settings
+      </h2>
+      <!-- Settings content -->
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
