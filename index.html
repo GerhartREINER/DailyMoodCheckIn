@@ -649,7 +649,7 @@
                 if (stored) {
                     app.data = JSON.parse(stored);
                 } else {
-                    generateSampleData();
+                    app.data = {};
                 }
             } catch (e) {
                 console.error('Error loading data:', e);
@@ -663,30 +663,6 @@
             } catch (e) {
                 console.error('Error saving data:', e);
             }
-        }
-
-        function generateSampleData() {
-            const today = new Date();
-            const moods = ['great', 'good', 'okay', 'low', 'rough'];
-            
-            for (let i = 1; i <= 15; i++) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-                const key = formatDate(date);
-                
-                const habits = {};
-                app.habits.forEach(habit => {
-                    habits[habit] = Math.random() > 0.3;
-                });
-                
-                app.data[key] = {
-                    mood: moods[Math.floor(Math.random() * moods.length)],
-                    habits: habits,
-                    notes: i % 3 === 0 ? 'Sample note for day ' + i : ''
-                };
-            }
-            
-            saveData();
         }
 
         function getTodayData() {
