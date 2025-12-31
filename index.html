@@ -211,42 +211,6 @@
             margin-top: 5px;
         }
 
-        .save-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .save-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-        }
-
-        .save-btn:active {
-            transform: translateY(0);
-        }
-
-        .saved-indicator {
-            text-align: center;
-            color: #28a745;
-            font-weight: 600;
-            margin-top: 10px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .saved-indicator.show {
-            opacity: 1;
-        }
-
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -268,7 +232,7 @@
             position: relative;
         }
 
-        .calendar-day:hover:not(.future) {
+        .calendar-day:hover {
             border-color: #667eea;
             transform: scale(1.05);
         }
@@ -607,15 +571,6 @@
                     <textarea id="notesInput" placeholder="Write your thoughts for today..." maxlength="500"></textarea>
                     <div class="char-counter" id="charCounter">0 / 500</div>
                 </div>
-
-                <div class="section">
-                    <button class="save-btn" id="saveBtn">
-                        <i class="fas fa-save"></i> Save Today's Entry
-                    </button>
-                    <div class="saved-indicator" id="savedIndicator">
-                        <i class="fas fa-check-circle"></i> Saved successfully!
-                    </div>
-                </div>
             </div>
 
             <!-- History View -->
@@ -652,11 +607,6 @@
         const app = {
             currentView: 'today',
             data: {},
-            pendingChanges: {
-                mood: null,
-                habits: {},
-                notes: ''
-            },
             habits: ['shower', 'walk', 'exercise', 'meditate', 'read'],
             moodEmojis: {
                 great: '😄',
@@ -699,7 +649,7 @@
                 if (stored) {
                     app.data = JSON.parse(stored);
                 } else {
-                    app.data = {};
+                    generateSampleData();
                 }
             } catch (e) {
                 console.error('Error loading data:', e);
@@ -715,6 +665,30 @@
             }
         }
 
+        function generateSampleData() {
+            const today = new Date();
+            const moods = ['great', 'good', 'okay', 'low', 'rough'];
+            
+            for (let i = 1; i <= 15; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const key = formatDate(date);
+                
+                const habits = {};
+                app.habits.forEach(habit => {
+                    habits[habit] = Math.random() > 0.3;
+                });
+                
+                app.data[key] = {
+                    mood: moods[Math.floor(Math.random() * moods.length)],
+                    habits: habits,
+                    notes: i % 3 === 0 ? 'Sample note for day ' + i : ''
+                };
+            }
+            
+            saveData();
+        }
+
         function getTodayData() {
             const key = getTodayKey();
             if (!app.data[key]) {
@@ -727,34 +701,9 @@
             return app.data[key];
         }
 
-        function saveTodayEntry() {
-            const key = getTodayKey();
-            
-            // Save pending changes to data
-            app.data[key] = {
-                mood: app.pendingChanges.mood,
-                habits: { ...app.pendingChanges.habits },
-                notes: app.pendingChanges.notes
-            };
-            
-            saveData();
-            
-            // Show saved indicator
-            const indicator = document.getElementById('savedIndicator');
-            indicator.classList.add('show');
-            setTimeout(() => {
-                indicator.classList.remove('show');
-            }, 2000);
-        }
-
         // Today View Functions
         function initTodayView() {
             const data = getTodayData();
-            
-            // Initialize pending changes with current data
-            app.pendingChanges.mood = data.mood;
-            app.pendingChanges.habits = { ...data.habits };
-            app.pendingChanges.notes = data.notes || '';
             
             // Set mood
             document.querySelectorAll('.mood-option').forEach(option => {
@@ -779,23 +728,26 @@
                 option.addEventListener('click', function() {
                     document.querySelectorAll('.mood-option').forEach(o => o.classList.remove('selected'));
                     this.classList.add('selected');
-                    app.pendingChanges.mood = this.dataset.mood;
+                    const data = getTodayData();
+                    data.mood = this.dataset.mood;
+                    saveData();
                 });
             });
             
             document.querySelectorAll('.habit-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
-                    app.pendingChanges.habits[this.dataset.habit] = this.checked;
+                    const data = getTodayData();
+                    data.habits[this.dataset.habit] = this.checked;
+                    saveData();
                 });
             });
             
             notesInput.addEventListener('input', function() {
                 updateCharCounter();
-                app.pendingChanges.notes = this.value;
+                const data = getTodayData();
+                data.notes = this.value;
+                saveData();
             });
-            
-            // Save button
-            document.getElementById('saveBtn').addEventListener('click', saveTodayEntry);
         }
 
         function updateCharCounter() {
@@ -914,7 +866,7 @@
                 const key = formatDate(date);
                 const data = app.data[key];
                 
-                if (data && data.mood) {
+                if (data) {
                     app.habits.forEach(habit => {
                         stats[habit].total++;
                         if (data.habits[habit]) {
@@ -968,3 +920,43 @@
                 initHistoryView();
             } else if (viewName === 'progress') {
                 initProgressView();
+            }
+        }
+
+        // Modal
+        function initModal() {
+            const modal = document.getElementById('detailModal');
+            const closeBtn = document.getElementById('modalClose');
+            
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize App
+        function init() {
+            loadData();
+            
+            const dateEl = document.getElementById('currentDate');
+            dateEl.textContent = formatDisplayDate(new Date());
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    switchView(btn.dataset.view);
+                });
+            });
+            
+            initTodayView();
+            initModal();
+        }
+
+        init();
+    </script>
+</body>
+</html>
