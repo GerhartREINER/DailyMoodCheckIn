@@ -1,277 +1,71 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mood & Habit Tracker</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-chart-line"></i> Mood & Habit Tracker</h1>
-            <p class="subtitle">Track your daily mood, build healthy habits, and monitor your progress</p>
-        </header>
+<!doctype html>
+<div class="today-header">
+<div>
+<div class="date" id="todayDate"></div>
+<div class="hint">How are you feeling today?</div>
+</div>
+<div class="actions">
+<button id="clearToday" class="btn small ghost" title="Clear today's data"><i class="fa-solid fa-eraser"></i></button>
+</div>
+</div>
 
-        <div class="app-container">
-            <nav class="tabs">
-                <button class="tab active" data-view="today">
-                    <i class="fas fa-calendar-day"></i> Today
-                </button>
-                <button class="tab" data-view="history">
-                    <i class="fas fa-history"></i> History
-                </button>
-                <button class="tab" data-view="progress">
-                    <i class="fas fa-chart-bar"></i> Progress
-                </button>
-            </nav>
 
-            <main>
-                <!-- Today View -->
-                <section id="today-view" class="view active">
-                    <div class="date-header">
-                        <h2>Today's Check-in</h2>
-                        <div class="current-date" id="current-date"></div>
-                    </div>
+<div class="card mood-card">
+<div class="mood-row" id="moodOptions"></div>
+</div>
 
-                    <div class="mood-section">
-                        <h3>How are you feeling today?</h3>
-                        <div class="mood-options">
-                            <div class="mood-option" data-mood="great">
-                                <div class="emoji">😊</div>
-                                <span class="mood-label">Great</span>
-                            </div>
-                            <div class="mood-option" data-mood="good">
-                                <div class="emoji">🙂</div>
-                                <span class="mood-label">Good</span>
-                            </div>
-                            <div class="mood-option" data-mood="okay">
-                                <div class="emoji">😐</div>
-                                <span class="mood-label">Okay</span>
-                            </div>
-                            <div class="mood-option" data-mood="low">
-                                <div class="emoji">😕</div>
-                                <span class="mood-label">Low</span>
-                            </div>
-                            <div class="mood-option" data-mood="rough">
-                                <div class="emoji">😔</div>
-                                <span class="mood-label">Rough</span>
-                            </div>
-                        </div>
-                        <div class="selected-mood-display">
-                            <span id="selected-mood-text">No mood selected yet</span>
-                        </div>
-                    </div>
 
-                    <div class="habits-section">
-                        <h3>Daily Habits</h3>
-                        <div class="habits-list">
-                            <div class="habit-item">
-                                <input type="checkbox" id="habit-shower" data-habit="shower">
-                                <label for="habit-shower">
-                                    <i class="fas fa-shower"></i>
-                                    <span>Shower</span>
-                                </label>
-                            </div>
-                            <div class="habit-item">
-                                <input type="checkbox" id="habit-walk" data-habit="walk">
-                                <label for="habit-walk">
-                                    <i class="fas fa-walking"></i>
-                                    <span>Walk</span>
-                                </label>
-                            </div>
-                            <div class="habit-item">
-                                <input type="checkbox" id="habit-exercise" data-habit="exercise">
-                                <label for="habit-exercise">
-                                    <i class="fas fa-dumbbell"></i>
-                                    <span>Exercise</span>
-                                </label>
-                            </div>
-                            <div class="habit-item">
-                                <input type="checkbox" id="habit-meditate" data-habit="meditate">
-                                <label for="habit-meditate">
-                                    <i class="fas fa-spa"></i>
-                                    <span>Meditate</span>
-                                </label>
-                            </div>
-                            <div class="habit-item">
-                                <input type="checkbox" id="habit-read" data-habit="read">
-                                <label for="habit-read">
-                                    <i class="fas fa-book"></i>
-                                    <span>Read</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="habits-summary">
-                            <span id="habits-completed">0/5 habits completed</span>
-                        </div>
-                    </div>
+<div class="card habits-card">
+<h3>Daily Habits</h3>
+<div class="habits-list" id="habitsList"></div>
+</div>
 
-                    <div class="notes-section">
-                        <h3>Daily Notes <span class="char-count" id="char-count">0/500</span></h3>
-                        <textarea id="daily-notes" placeholder="How was your day? What made you feel this way? Write your thoughts here..."></textarea>
-                    </div>
 
-                    <div class="save-section">
-                        <button id="save-button" class="save-btn">
-                            <i class="fas fa-save"></i> Auto-saved to browser
-                        </button>
-                        <div class="last-saved" id="last-saved">Last saved: Not yet</div>
-                    </div>
-                </section>
+<div class="card notes-card">
+<h3>Notes</h3>
+<textarea id="notes" maxlength="300" placeholder="Write something... (max 300 chars)"></textarea>
+<div class="notes-footer"><span id="charCount">0</span>/300</div>
+</div>
+</section>
 
-                <!-- History View -->
-                <section id="history-view" class="view">
-                    <div class="history-header">
-                        <h2>30-Day History</h2>
-                        <button id="prev-month" class="nav-btn"><i class="fas fa-chevron-left"></i></button>
-                        <span id="current-month-year">Month Year</span>
-                        <button id="next-month" class="nav-btn"><i class="fas fa-chevron-right"></i></button>
-                    </div>
 
-                    <div class="calendar-container">
-                        <div class="calendar-weekdays">
-                            <div>Sun</div>
-                            <div>Mon</div>
-                            <div>Tue</div>
-                            <div>Wed</div>
-                            <div>Thu</div>
-                            <div>Fri</div>
-                            <div>Sat</div>
-                        </div>
-                        <div class="calendar-days" id="calendar-days">
-                            <!-- Calendar days will be generated by JavaScript -->
-                        </div>
-                    </div>
+<!-- HISTORY VIEW -->
+<section id="historyView" class="view hidden">
+<div class="history-header">
+<h2>Last 30 Days</h2>
+<div class="hint">Click a day to see details</div>
+</div>
+<div id="calendarGrid" class="calendar-grid"></div>
 
-                    <div class="day-details" id="day-details">
-                        <div class="no-day-selected">
-                            <i class="fas fa-calendar-alt"></i>
-                            <p>Click on a day to see details</p>
-                        </div>
-                    </div>
-                </section>
 
-                <!-- Progress View -->
-                <section id="progress-view" class="view">
-                    <div class="progress-header">
-                        <h2>Progress Analytics</h2>
-                        <div class="timeframe-selector">
-                            <span>Last 30 days</span>
-                        </div>
-                    </div>
+<div id="dayModal" class="modal hidden">
+<div class="modal-content">
+<button class="modal-close" id="closeModal"><i class="fa-solid fa-xmark"></i></button>
+<div id="modalDate" class="modal-date"></div>
+<div id="modalMood" class="modal-mood"></div>
+<div id="modalHabits" class="modal-habits"></div>
+<div id="modalNotes" class="modal-notes"></div>
+</div>
+</div>
+</section>
 
-                    <div class="stats-overview">
-                        <div class="stat-card">
-                            <div class="stat-icon mood-stat">
-                                <i class="fas fa-smile"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3>Average Mood</h3>
-                                <div class="stat-value" id="avg-mood">-</div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon habit-stat">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3>Habit Completion</h3>
-                                <div class="stat-value" id="avg-habits">-</div>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon consistency-stat">
-                                <i class="fas fa-fire"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3>Consistency</h3>
-                                <div class="stat-value" id="consistency">-</div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="habits-progress">
-                        <h3>Habit Completion Rates</h3>
-                        <div class="progress-bars">
-                            <div class="progress-item">
-                                <div class="habit-name">
-                                    <i class="fas fa-shower"></i> Shower
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar" id="shower-progress">
-                                        <div class="progress-fill"></div>
-                                    </div>
-                                    <span class="progress-percent" id="shower-percent">0%</span>
-                                </div>
-                            </div>
-                            <div class="progress-item">
-                                <div class="habit-name">
-                                    <i class="fas fa-walking"></i> Walk
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar" id="walk-progress">
-                                        <div class="progress-fill"></div>
-                                    </div>
-                                    <span class="progress-percent" id="walk-percent">0%</span>
-                                </div>
-                            </div>
-                            <div class="progress-item">
-                                <div class="habit-name">
-                                    <i class="fas fa-dumbbell"></i> Exercise
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar" id="exercise-progress">
-                                        <div class="progress-fill"></div>
-                                    </div>
-                                    <span class="progress-percent" id="exercise-percent">0%</span>
-                                </div>
-                            </div>
-                            <div class="progress-item">
-                                <div class="habit-name">
-                                    <i class="fas fa-spa"></i> Meditate
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar" id="meditate-progress">
-                                        <div class="progress-fill"></div>
-                                    </div>
-                                    <span class="progress-percent" id="meditate-percent">0%</span>
-                                </div>
-                            </div>
-                            <div class="progress-item">
-                                <div class="habit-name">
-                                    <i class="fas fa-book"></i> Read
-                                </div>
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar" id="read-progress">
-                                        <div class="progress-fill"></div>
-                                    </div>
-                                    <span class="progress-percent" id="read-percent">0%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<!-- PROGRESS VIEW -->
+<section id="progressView" class="view hidden">
+<div class="progress-header">
+<h2>Progress (Last 30 Days)</h2>
+</div>
+<div id="progressList" class="progress-list"></div>
+</section>
+</main>
 
-                    <div class="mood-distribution">
-                        <h3>Mood Distribution</h3>
-                        <div class="mood-bars">
-                            <!-- Mood distribution bars will be generated by JavaScript -->
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
 
-        <footer>
-            <p>Mood & Habit Tracker &copy; <span id="current-year"></span> | Data saved locally in your browser</p>
-        </footer>
-    </div>
+<footer class="footer">
+<small>Local-only · Data saved to <code>localStorage</code></small>
+</footer>
+</div>
 
-    <script src="script.js"></script>
+
+<script src="script.js"></script>
 </body>
 </html>
