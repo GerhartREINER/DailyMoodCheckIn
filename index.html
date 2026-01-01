@@ -1,258 +1,79 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Mood & Habit Tracker</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- index.html -->
+<div class="card">
+<div class="card-header">
+<h2>Last 30 Days</h2>
+<div class="legend"><span class="dot mood"></span> Mood • <span class="dot done"></span> Completed</div>
+</div>
+<div class="card-body">
+<div id="calendar-grid" class="calendar-grid" aria-live="polite">
+<!-- day cells injected by JS -->
+</div>
+</div>
+</div>
+</section>
 
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
 
-:root {
-    --bg-main: #0f1220;
-    --bg-card: #171a2e;
-    --bg-soft: #1f2342;
-    --accent: #8b9cff;
-    --accent-2: #b18bff;
-    --text-main: #e6e8ff;
-    --text-muted: #9aa0ff;
-    --border-soft: rgba(255,255,255,0.08);
-    --success: #3ddc97;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: radial-gradient(circle at top, #1b1f45, var(--bg-main));
-    min-height: 100vh;
-    padding: 20px;
-    color: var(--text-main);
-}
-
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    background: var(--bg-card);
-    border-radius: 20px;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-    overflow: hidden;
-    border: 1px solid var(--border-soft);
-}
-
-.header {
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: white;
-    padding: 30px;
-    text-align: center;
-}
-
-.nav {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    padding: 20px;
-    background: var(--bg-soft);
-    border-bottom: 1px solid var(--border-soft);
-}
-
-.nav-btn {
-    padding: 12px 30px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: 600;
-    transition: all 0.3s;
-}
-
-.nav-btn:hover {
-    background: rgba(255,255,255,0.08);
-    color: var(--text-main);
-}
-
-.nav-btn.active {
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: white;
-    box-shadow: 0 6px 20px rgba(139,156,255,0.4);
-}
-
-.content { padding: 36px; }
-
-.section { margin-bottom: 32px; }
-
-.section-title {
-    font-size: 1.3em;
-    margin-bottom: 15px;
-    color: var(--accent);
-    font-weight: 600;
-}
-
-/* Mood */
-.mood-selector {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.mood-option {
-    flex: 1;
-    min-width: 80px;
-    padding: 20px 10px;
-    border: 2px solid var(--border-soft);
-    border-radius: 16px;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.3s;
-    background: var(--bg-soft);
-}
-
-.mood-option:hover {
-    transform: translateY(-4px);
-    border-color: var(--accent);
-}
-
-.mood-option.selected {
-    border-color: var(--accent);
-    box-shadow: 0 0 25px rgba(139,156,255,0.3);
-}
-
-.mood-label { color: var(--text-muted); }
-
-/* Habits */
-.habits-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.habit-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 15px;
-    background: var(--bg-soft);
-    border-radius: 12px;
-    border: 1px solid var(--border-soft);
-    transition: all 0.3s;
-}
-
-.habit-item:hover {
-    transform: translateX(4px);
-    background: rgba(255,255,255,0.06);
-}
-
-.habit-icon { color: var(--accent); }
-.habit-checkbox { accent-color: var(--accent); }
-
-/* Notes */
-textarea {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid var(--border-soft);
-    border-radius: 12px;
-    font-size: 1em;
-    background: var(--bg-soft);
-    color: var(--text-main);
-}
-
-textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 20px rgba(139,156,255,0.25);
-}
-
-.char-counter { color: var(--text-muted); margin-top: 6px; }
-
-/* Save */
-.save-btn {
-    width: 100%;
-    padding: 16px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    color: white;
-    border: none;
-    border-radius: 14px;
-    font-size: 1.1em;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.save-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(139,156,255,0.5);
-}
-
-.saved-indicator {
-    text-align: center;
-    color: var(--success);
-    font-weight: 600;
-    margin-top: 10px;
-    opacity: 0;
-    transition: opacity .3s;
-}
-.saved-indicator.show { opacity: 1; }
-</style>
-</head>
-
-<body>
-<div class="container">
-    <div class="header">
-        <h1><i class="fas fa-sun"></i> Mood & Habit Tracker</h1>
-        <div id="currentDate"></div>
-    </div>
-
-    <nav class="nav">
-        <button class="nav-btn active">Today</button>
-    </nav>
-
-    <div class="content">
-        <div class="section">
-            <h2 class="section-title">How are you feeling today?</h2>
-            <div class="mood-selector" id="moodSelector">
-                <div class="mood-option">😄<div class="mood-label">Great</div></div>
-                <div class="mood-option">😊<div class="mood-label">Good</div></div>
-                <div class="mood-option">😐<div class="mood-label">Okay</div></div>
-                <div class="mood-option">😔<div class="mood-label">Low</div></div>
-                <div class="mood-option">😞<div class="mood-label">Rough</div></div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">Notes</h2>
-            <textarea id="notesInput" maxlength="500"></textarea>
-            <div class="char-counter" id="charCounter">0 / 500</div>
-        </div>
-
-        <div class="section">
-            <button class="save-btn" id="saveBtn">Save</button>
-            <div class="saved-indicator" id="savedIndicator">Saved ✔</div>
-        </div>
-    </div>
+<!-- ANALYTICS -->
+<section id="analytics" class="panel" role="tabpanel" aria-hidden="true">
+<div class="card">
+<div class="card-header">
+<h2>Analytics</h2>
+</div>
+<div class="card-body">
+<div class="analytics-block">
+<h3>Habit Completion Rates</h3>
+<div id="habit-rates" class="rates">
+<!-- bars injected -->
+</div>
 </div>
 
-<script>
-document.getElementById("currentDate").textContent =
-  new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
 
-document.getElementById("notesInput").addEventListener("input", e=>{
-  document.getElementById("charCounter").textContent =
-    `${e.target.value.length} / 500`;
-});
+<div class="analytics-block">
+<h3>Mood Frequency</h3>
+<div id="mood-freq" class="mood-freq">
+<!-- mood freq bars injected -->
+</div>
+</div>
 
-document.getElementById("saveBtn").onclick=()=>{
-  const i=document.getElementById("savedIndicator");
-  i.classList.add("show");
-  setTimeout(()=>i.classList.remove("show"),2000);
-};
 
-document.querySelectorAll(".mood-option").forEach(opt=>{
-  opt.onclick=()=>{
-    document.querySelectorAll(".mood-option").forEach(o=>o.classList.remove("selected"));
-    opt.classList.add("selected");
-  };
-});
-</script>
+<div class="analytics-block">
+<h3>Weekly Progress (last 4 weeks)</h3>
+<div id="weekly-trend" class="weekly-trend">
+<!-- small bars injected -->
+</div>
+</div>
+
+
+<div class="analytics-block stats">
+<h3>Statistics</h3>
+<div id="stats-list" class="stats-list">
+<!-- stats injected -->
+</div>
+</div>
+</div>
+</div>
+</section>
+
+
+</main>
+
+
+<!-- Day detail modal -->
+<div id="detail-modal" class="modal" aria-hidden="true">
+<div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+<button class="modal-close" id="modal-close">×</button>
+<h3 id="modal-title">Day details</h3>
+<div id="modal-body"></div>
+</div>
+</div>
+
+
+<footer class="app-footer">
+<small>Built with ♥ — localStorage persists your data</small>
+</footer>
+</div>
+
+
+<script src="script.js"></script>
 </body>
 </html>
